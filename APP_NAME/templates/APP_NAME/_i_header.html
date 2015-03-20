@@ -1,0 +1,33 @@
+{% load i18n %}
+{% load staticfiles %}
+
+<div id="header">
+
+	<div id="left_header_group">
+		<a id="site_name" href="{% url "index" %}">
+			new app
+		</a>
+		<div id="colophon">
+		</div>
+		<div id="tagline">
+			It's gonna be great.
+		</div>
+	</div>
+
+	<div id="right_header_group">
+		<a class="header_link">
+			stuff
+		</a>
+		<a class="header_link">
+			stuff
+		</a>
+		<a id="search" class="menu_container">
+		</a>
+		{% include "APP_NAME/_w_login_user.html" %}
+	</div>
+
+	<div class="clear"></div>
+
+</div>
+
+

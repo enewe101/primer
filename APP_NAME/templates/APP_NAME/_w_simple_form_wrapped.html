@@ -1,0 +1,14 @@
+{% load i18n %}
+<form class="{{ form.form_class}}" 
+	id="{{ form.form_class }}_{{ form.id_prefix }}" 
+	action="{{ form.endpoint }}" 
+	method="post" />
+
+	{% csrf_token %}
+
+	{% include "APP_NAME/_w_simple_form.html" %}
+
+	<input id="{{ form.form_class}}_{{ form.id_prefix }}_submit" 
+	class="submit" type="submit" value="{% trans "submit" %}" />
+
+</form>

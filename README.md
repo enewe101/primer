@@ -1,2 +1,5 @@
-# primer
-Base for new django apps that comes with extra batteries
+Get dependencies
+
+sudo pip install twilio
+sudo pip install django-nose ?
+sudo pip install pydenticon

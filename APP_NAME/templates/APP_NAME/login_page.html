@@ -1,0 +1,28 @@
+{% extends "APP_NAME/__base.html" %}
+{% load staticfiles %}
+{% load apptags %}
+{% load i18n %}
+
+{% block css %}
+	{{ block.super }}
+{% endblock css %}
+
+{% block js %}
+	{{ block.super }}
+{% endblock js %}
+
+{% block middle %}
+
+<div class="mid_form">
+	<h1 class="computerModern">{% trans "Login" %}</h1></br> 
+
+	{% if error %}
+		<span class="field_errors" id="login_error">
+			{% trans "Incorrect username or password" %}
+		</span>
+	{% endif %}
+
+	{% include "APP_NAME/_w_simple_form_wrapped.html" with form=login_form %}
+</div>
+
+{% endblock middle %}
