@@ -16,8 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 
 TEST_MODE = 'test' in sys.argv
 IN_PRODUCTION = False
-if hasattr(local_settings, 'IN_PRODUCTION'):
-	IN_PRODUCTION = local_settings.IN_PRODUCTION
+IN_PRODUCTION = local_settings.IN_PRODUCTION
 
 	####################
 	#                  #
@@ -32,12 +31,8 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(PROJECT_DIR, 'static/')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(PROJECT_DIR, 'media/')
-print MEDIA_ROOT
 
-DATA_FIXTURE = 'production_data'
-if hasattr(local_settings, 'DATA_FIXTURE'):
-	DATA_FIXTURE = local_settings.DATA_FIXTURE
-
+DATA_FIXTURE = local_settings.DATA_FIXTURE
 TEST_FIXTURE = 'test_data'
 
 	##########################################
@@ -56,8 +51,8 @@ class InvalidString(str):
 		raise TemplateSyntaxError(
 			"Undefined variable or unknown value for: \"%s\"" % other)
 
-STRICT_TEMPLATE = local_settings.STRICT_TEMPLATE
-if STRICT_TEMPLATE:
+
+if local_settings.STRICT_TEMPLATE:
 	TEMPLATE_STRING_IF_INVALID = InvalidString("%s")
 else:
 	TEMPLATE_STRING_IF_INVALID = ''
@@ -128,8 +123,6 @@ WSGI_APPLICATION = 'APP_NAME.wsgi.application'
 	#####################################
 
 DATABASES = local_settings.DATABASES
-#if TEST_MODE:
-#	DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3'}}
 
 HAYSTACK_CONNECTIONS = {
 	'default': {

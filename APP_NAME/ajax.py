@@ -27,6 +27,7 @@ def ajax_endpoint(f):
 	return f
 
 
+#TODO: remove form_class argument
 def ajax_endpoint_login_required(error_msg=None, form_class=None):
 	'''
 	Use this decorator for ajax functions that should only honour requests
@@ -154,70 +155,16 @@ def screen_ajax_error(e):
 	return err_msg
 
 
-def vote(vote_spec, request):
-
-	existing_vote = get_or_none(vote_spec['model'],
-		user=request.POST['user'], target=request.POST['target']) 
-
-	if existing_vote is not None:
-		existing_valence = existing_vote.valence
-	else:
-		existing_valence = 0
-
-	vote_form = vote_spec['form'](request.POST, instance=existing_vote)
-
-	if vote_form.is_valid():
-
-		# make sure that the vote is not being cast by a user on her own
-		# content!
-		content_author = vote_form.cleaned_data['target'].user
-		if(request.user == content_author):
-			return {
-				'success':False, 
-				'msg': 'user cannot vote on own content',
-				'errors': ["You can't vote on your own post!"]
-			}
-
-		# record that the user has voted on this target
-		vote_form.save()
-
-		# increment or decrement the target score and author's rep
-		target = vote_form.cleaned_data['target']
-		author = target.user.profile
-
-		if existing_valence == 1:
-			target.score -= 1
-			author.undo_rep(vote_spec['up_event'])
-
-		elif existing_valence == -1:
-			target.score += 1
-			author.undo_rep(vote_spec['dn_event'])
-
-		if vote_form.cleaned_data['valence'] == 1:
-			target.score += 1
-			author.apply_rep(vote_spec['up_event'])
-
-		elif vote_form.cleaned_data['valence'] == -1:
-			target.score -= 1
-			author.apply_rep(vote_spec['dn_event'])
-
-		target.save()
-		author.save()
-
-		return {'success':True}
-
-	return {
-		'success': False,
-		'msg': 'ajax.py: vote(): VoteForm was not valid'
-	}
-
-
-
 #####################
 #					#
 #  ajax endpoints	#
 #					#
 #####################
+
+@ajax_endopint
+def ajax_test(requesnt):
+	return {'success':True}
+
 
 @ajax_endpoint
 def ajax_login(request):

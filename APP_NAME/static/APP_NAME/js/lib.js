@@ -24,36 +24,6 @@ function getCookie(name) {
 
 
 
-///////////////////////////////	
-//  						 //
-//  Registrar for Doc Events //
-//	 (prevents collisions)	 //
-//  						 //
-///////////////////////////////	
-
-function DocEventRegistrar() {
-
-	var callbacks = {
-		"click" : []
-	};
-
-	this.on = function(event_name, func) {
-		callbacks[event_name].push(func)
-	};
-
-	var arm_fire_callbacks = function(event_name) {
-		return function(e) {
-			for(var i=0; i<callbacks[event_name].length; i++) {
-				callbacks[event_name][i](e);
-			}
-		}
-	};
-
-	$(document).on('click', arm_fire_callbacks('click'));
-}
-var doc_event_registrar = new DocEventRegistrar();
-
-
 function csrfSafeMethod(method) {
     // these HTTP methods do not require CSRF protection
     return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
@@ -167,8 +137,6 @@ function dict(arr) {
 
 
 
-
-
 //////////////////////
 //  				//
 //  widget manager  //
@@ -196,15 +164,11 @@ function register_form(form_id, endpoint, form_class, submit_id) {
 
 
 
-
-
-
 //////////////////////////
 //  					//
 //  generic FormWidget  //
 //  					//
 //////////////////////////
-
 
 function FormWidget(form_id, endpoint, submit_id) {
 
@@ -309,258 +273,6 @@ function render_errors(data, form_id) {
 
 
 
-//////////////////////////
-//  					//
-//    VoteForm widget   //
-//  					//
-//////////////////////////
-
-function VoteForm(form_id, form_class, start_state, score, endpoint, 
-	is_enabled, tooltip) {
-
-	// do some validation
-	if(!(typeof form_id == 'string')) {
-		js_error('In VoteForm(form_id, form_class, start_state), id must be '
-			+ 'an html-safe string');
-	}
-
-	start_state = parseInt(start_state);
-
-	if($.inArray(start_state, [-1, 0, 1]) == -1) {
-		js_error(
-			"In vote_form, start_state must be -1, 0, or 1; found: "
-			+ start_state);
-	}
-
-	// register the html form
-	this.form = $('#' + form_id);
-	this.valence = $('#' + form_id + ' input[name=valence]'); 
-
-	// build the html elements for this widget
-	this.html = {};
-	this.html.upvote = $('<div id="'+form_id+'_upvote" class="upvote" />');
-	this.html.score = $('<div id="'+form_id+'_score" class="score" />');
-	this.html.downvote = $(
-		'<div id="'+form_id+'_downvote" class="downvote" />');
-
-	// Add a tooltip that tells unauthenticated users they can't vote :(
-	if(!is_enabled) {
-		this.html.upvote.attr('title', tooltip);
-		this.html.downvote.attr('title', tooltip);
-	}
-
-	this.html.wrapper = $('<div id="'+form_id+'_wrapper" class="vote_form" />')
-		.append([this.html.upvote, this.html.score, this.html.downvote]);
-
-	// arm the upvote button.  Proxy makes the event handler use this context.
-	this.html.upvote.click( $.proxy(
-		function() {
-
-			// do nothing if not enabled!
-			if(!is_enabled) {
-				return
-
-			// otherwise, perform the right state transition in the UI
-			} else if(this.state == -1) {
-				this.enter_state_1();
-
-			} else if(this.state == 0) {
-				this.enter_state_1();
-
-			} else if(this.state == 1) {
-				this.enter_state_0();
-
-			} else {
-				js_error('VoteForm: unexpected state: ' + this.state);
-			}
-
-			// and then send the vote off to the server
-			this.send_vote();
-
-		}, this)
-	);
-
-
-	// arm the downvote button.  Proxy makes event handler use this context.
-	this.html.downvote.click( $.proxy(
-		function() {
-
-			// do nothing if not enabled!
-			if(!is_enabled) {
-				return
-
-			// otherwise, perform the right state transition in the UI
-			} else if (this.state == -1) {
-				this.enter_state_0();
-
-			} else if (this.state == 0) {
-				this.enter_state_neg1();
-
-			} else if (this.state == 1) {
-				this.enter_state_neg1();
-
-			} else {
-				js_error('VoteForm: unexpected state: ' + this.state);
-			}
-
-			// and then send the vote off to the server
-			this.send_vote();
-
-		}, this)
-	);
-
-
-	// state-changing functions
-	this.enter_state_neg1 = function() {
-		this.html.upvote.attr('class', 'upvote_off');
-		this.html.downvote.attr('class', 'downvote_on');
-		this.html.score.text(this.score - 1);
-		this.state = -1;
-	}
-
-	this.enter_state_0 = function() {
-		this.html.upvote.attr('class', 'upvote_off');
-		this.html.downvote.attr('class', 'downvote_off');
-		this.html.score.text(this.score);
-		this.state = 0;
-	}
-
-	this.enter_state_1 = function() {
-		this.html.upvote.attr('class', 'upvote_on');
-		this.html.downvote.attr('class', 'downvote_off');
-		this.html.score.text(this.score + 1);
-		this.state = 1;
-	}
-
-	
-	// this provides placeholders for callbacks that the page in which
-	// this widget will be placed, can use
-	var events = ['before', 'success', 'error', 'after'];
-	var hooks = make_page_hooks(this, events);
-	hooks.error = alert_ajax_error;
-
-	// posts the vote using ajax
-	this.send_vote = function() {
-
-		this.valence.val(this.state);
-
-		ajaxForm(
-			endpoint,
-		   	this.form,
-			{
-				'before': $.proxy(
-					function(data, textStatus, jqXHR) {
-						hooks.before(data, textStatus, jqXHR);
-					}, 
-					this
-				),
-
-				'success': $.proxy(
-					function(data, textStatus, jqXHR) {
-						if(data.success) {
-							hooks.success(data, textStatus, jqXHR);
-						} else {
-							hooks.error(data, textStatus, jqXHR);
-						}
-					}, 
-					this
-				),
-
-				'error': $.proxy(
-					function(data, textStatus, jqXHR) {
-						hooks.error(data, textStatus, jqXHR);
-					}, 
-					this
-				),
-
-				'after': $.proxy(
-					function(data, textStatus, jqXHR) {
-						hooks.error(data, textStatus, jqXHR);
-					}, 
-					this
-				)
-			}
-		);
-	}
-
-
-	// gets the html element for this widget
-	this.get = function() {
-		return this.html.wrapper;
-	}
-
-
-	// initilize the vote form into the state passed to the constructor
-	if(start_state == -1) {
-		this.score = score + 1;
-		this.enter_state_neg1();
-
-	} else if(start_state == 0) {
-		this.score = score;
-		this.enter_state_0();
-
-	} else if(start_state == 1) {
-		this.score = score - 1;
-		this.enter_state_1();
-
-	} else {
-		js_error('VoteForm: unexpected start_state: ' + this.start_state);
-	}
-
-}
-
-
-//////////////////////////////
-//  						//
-//   ResenderList widget	//
-//  						//
-//////////////////////////////
-
-function ResenderList(wrapper, init_users) {
-
-	wrapper = wrapper;
-	var users = init_users;
-
-	// public function.  Get the user avatar for user with given pk and then
-	// put it in the wrapper div
-	this.add_user = function(user_pk) {
-		
-		alert('resender add');
-		// if the user is already in the list, do nothing
-		if($.inArray(user_pk, users) >= 0) {
-			alert('chose not to add');
-			return;
-		}
-
-		alert('about to add');
-		// otherwise, we add the user, and append her avatar image
-		users.push(user_pk);
-		get_user_avatar_html(user_pk);
-
-	}
-
-	var get_user_avatar_html = function(user_pk) {
-		ajax(
-			'get_resender_avatar',
-		   	{'user_pk':user_pk}, 
-			{
-				'success': $.proxy(function(data){
-					if(data.success) {
-						wrapper.prepend(data.html);
-					} else {
-						js_error(
-							'get_user_avatar_html: json requesnt not accepted')
-					}
-				}, this)
-			}
-		);
-	};
-
-
-}
-
-
-
 //////////////////
 //  			//
 //   js utils	//
@@ -633,23 +345,6 @@ function make_page_hooks(obj, events) {
 	);
 
 	return hooks;
-}
-
-
-////////////////////
-//                //
-//	get Flourish  //
-//                //
-////////////////////
-
-function get_flourish() {
-
-	// Make HTML for a horizontal page division with a flourish
-	var flourish = $('<div class="hr_flourish"></div>');
-	flourish.append('<div class="hr"></div>');
-	flourish.append('<div class="flourish"></div>');
-
-	return flourish;
 }
 
 
@@ -769,74 +464,4 @@ function ToggleHidden(toggle_div, content_1, content_2, message_1, message_2) {
 }
 
 
-
-
-//////////////////////
-//  				//
-//   Reply widget	//  Depricated.  Just use FormWidget
-//  				//
-//////////////////////
-
-//function ReplyWidget(form, endpoint, submit_button) {
-//
-//	var events = ['before', 'success', 'error', 'after'];
-//	var hooks = make_page_hooks(this, events);
-//	hooks.error = alert_ajax_error;
-//
-//	// the ReplyWidget decorates a form widget
-//	var form_widget = new FormWidget(form, endpoint, submit_button);
-//
-//	// get the reply text-area
-//	var reply_input = $('textarea[name=body]', form);
-//
-//	// when the reply is successfully posted, clear the textarea,
-//	// and call the success hook
-//	var success = function(data, statusText, jqXHR) {
-//		reply_input.val('');
-//		hooks.success(data, statusText, jqXHR);
-//	}
-//
-//	// forward hooks to the underlying form widget
-//	form_widget.hook('success', success);
-//	form_widget.hook('before', hooks.before);
-//	form_widget.hook('error', hooks.error);
-//	form_widget.hook('after', hooks.after);
-//}
-//
-
-function AddFactorVersionWidget(add_link, form_wrapper, 
-	num_forms_input, valence) {
-
-	var events = ['success', 'error'];
-	var hooks = make_page_hooks(this, events);
-	hooks.error = alert_ajax_error;
-	
-	this.click_callback = $.proxy(function(){
-
-		var num_forms = parseInt(num_forms_input.val());
-
-		// a callback to put the new form when received
-		var success = $.proxy(function (data, textStatus, jqXHR) {
-
-			// call the success hook
-			hooks.success(data.html, num_forms + 1);
-
-			// insert the new form and increment the total number of forms
-			form_wrapper.append(data.html);
-			num_forms_input.val(num_forms + 1);
-		}, this);
-
-		ajax(
-			'get_factor_form',
-			{ 
-				'valence': valence,
-				'include_id': num_forms
-			},
-			{ 'success': success }
-		);
-	},this);
-
-	add_link.click(this.click_callback);
-
-}
 

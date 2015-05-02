@@ -84,6 +84,37 @@ class AugmentedFormMixin(object):
 		return all_fields
 
 
+def auto_add_input_class(form_class_name, form_instance):
+    ''' 
+    Add an html class to the widget html for all the widgets listed in a
+    form's Meta.widgets dictionary.
+
+    The html class is made from the form's class and the widget's field name
+    e.g. If a CommentForm has a widget for the field `body`, the widget
+    html would look like:
+        <textarea class="CommentForm_body" ...
+
+    '''
+    for field in form_instance.Meta.fields:
+
+        # for each field, get the widget
+        try:
+            attrs = form_instance.Meta.widgets[field].attrs
+        except KeyError:
+            continue
+
+        # for each widget, get the html class attributed to it (if any)
+        if 'class' in attrs:
+            css_classes = attrs['class'] + ' ' 
+        else:
+            css_classes = ''
+
+        # add an auto-generated class to the widget html's class
+        if form_class_name not in css_classes:
+            css_classes += form_class_name + '_' + field
+            attrs['class'] = css_classes
+
+
 class LoginForm(AugmentedFormMixin, Form):
 	endpoint = 'ajax_login'
 	username = forms.CharField(max_length=USERNAME_MAX_LENGTH,
@@ -195,72 +226,5 @@ class UserRegisterForm(AugmentedFormMixin, ModelForm):
 					del cleaned['confirm_password']
 
 		return cleaned
-
-class ResetPasswordForm(AugmentedFormMixin,ModelForm):
-	class Meta:
-		model = PasswordReset
-		fields = ['username', 'email']
-		widgets = {
-			'username': forms.TextInput(),
-			'email': forms.EmailInput(),
-		}
-
-
-	def clean(self):
-		cleaned = super(ResetPasswordForm, self).clean()
-		user_email_match = False
-		try:
-		    User.objects.get(username = cleaned['username'],email = cleaned['email'])
-		    user_email_match = True
-		except ObjectDoesNotExist:
-		    user_email_match = False
-		
-		if not user_email_match:
-		    self._errors['username'] = self.error_class([_("Username doesn't exist or email doesn't match.")])
-		
-		return cleaned
-
-
-
-
-def auto_add_input_class(form_class_name, form_instance):
-    ''' 
-    Add an html class to the widget html for all the widgets listed in a
-    form's Meta.widgets dictionary.
-
-    The html class is made from the form's class and the widget's field name
-    e.g. If a CommentForm has a widget for the field `body`, the widget
-    html would look like:
-        <textarea class="CommentForm_body" ...
-
-    '''
-    for field in form_instance.Meta.fields:
-
-        # for each field, get the widget
-        try:
-            attrs = form_instance.Meta.widgets[field].attrs
-        except KeyError:
-            continue
-
-        # for each widget, get the html class attributed to it (if any)
-        if 'class' in attrs:
-            css_classes = attrs['class'] + ' ' 
-        else:
-            css_classes = ''
-
-        # add an auto-generated class to the widget html's class
-        if form_class_name not in css_classes:
-            css_classes += form_class_name + '_' + field
-            attrs['class'] = css_classes
-
-
-class ProofRequestForm(AugmentedFormMixin, ModelForm):
-	endpoint = '/request_proof/'
-	class Meta:
-		model = ProofRequest
-		fields = ['text']
-		widgets = {
-			'text': forms.Textarea()
-		}
 
 
