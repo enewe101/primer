@@ -244,7 +244,7 @@ class Index(AbstractView):
 	template = 'APP_NAME/index.html'
 
 	def get_context_data(self):
-		return {'form': ProofRequestForm()}
+		return {}
 
 
 def do_reload(request):
